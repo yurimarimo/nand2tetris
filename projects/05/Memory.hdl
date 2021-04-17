@@ -27,5 +27,13 @@ CHIP Memory {
     OUT out[16];
 
     PARTS:
-    // Put your code here:
+    // inの方の分岐は2つ
+    DMux(in=load, sel=address[14], a=ram, b=screen);
+
+    RAM16K(in=in, load=ram, address=address[0..13], out=w1);
+    Screen(in=in, load=screen, address=address[0..12], out=w2);
+    Keyboard(out=w3);
+
+    // outの方の分岐は3つ(2/4はRAMなので、aとbは同じ)
+    Mux4Way16(a=w1, b=w1, c=w2, d=w3, sel=address[13..14], out=out);
 }

@@ -39,5 +39,25 @@ CHIP CPU {
         pc[15];          // address of next instruction
 
     PARTS:
-    // Put your code here:
+    Not(in=instruction[15], out=noti);
+    Or(a=noti, b=instruction[5], out=loada);                   // A命令 または d1=1なら、Aレジスタに書き込む
+    And(a=instruction[15], b=instruction[4], out=loadd);       // C命令 かつ d2=1なら、Dレジスタに書き込む
+    And(a=instruction[15], b=instruction[3], out=writeM);      // C命令 かつ d3=1なら、メモリに書き込む
+
+    Mux16(a=instruction, b=out2, sel=instruction[15], out=i);  // Aレジスタへの入力を、A命令にするか、ALUからの出力にするか、iビットによって決める
+    ARegister(in=i, load=loada, out=a, out[0..14]=addressM);   // Aレジスタへの書き込み
+    Mux16(a=a, b=inM, sel=instruction[12], out=am);            // ALUへの入力の片方を、Aレジスタにするか、メモリ入力にするか、aビットによって決める
+    DRegister(in=out2, load=loadd, out=d);                     // Dレジスタへの書き込み
+
+    ALU(x=d, y=am, zx=instruction[11], nx=instruction[10], zy=instruction[9], ny=instruction[8], f=instruction[7], no=instruction[6], out=outM, out=out2, zr=zr, ng=ng);
+
+    Or(a=zr, b=ng, out=notps);
+    Not(in=notps, out=ps);                                     // ALUからの出力が0より大きければ、ps=1となる
+    And(a=instruction[0], b=ps, out=j3);                       // j3とpsが一致しているか
+    And(a=instruction[1], b=zr, out=j2);                       // j2とzrが一致しているか
+    And(a=instruction[2], b=ng, out=j1);                       // j1とngが一致しているか
+    Or(a=j3, b=j2, out=j23);
+    Or(a=j23, b=j1, out=j123);
+    And(a=instruction[15], b=j123, out=jump);                  // C命令 かつ j1~j3のいずれかが一致しているなら、ジャンプする
+    PC(in=a, inc=true, load=jump, reset=reset, out[0..14]=pc); // ジャンプ命令
 }
